@@ -45,59 +45,63 @@ pipeline {
         stage("2 · Preparar entorno") {
             steps {
 
-                sh """
-                    echo "Instalando dependencias..."
+                dir('sqp') {
 
-                    pip3 install --no-cache-dir -r requirements.txt
+                    sh """
+                        echo "Instalando dependencias..."
 
-                    mkdir -p ${REPORTS_DIR}
-                """
-            }
-        }
+                        pip3 install --no-cache-dir -r requirements.txt
 
-        stage("3 · Pruebas unitarias") {
-            steps {
-
-                sh """
-                    echo "Ejecutando pruebas..."
-
-                    pytest tests/ \
-                        --cov=src \
-                        --cov-report=xml:${REPORTS_DIR}/coverage.xml \
-                        --cov-report=html:${REPORTS_DIR}/htmlcov \
-                        --cov-fail-under=${COVERAGE_THRESHOLD} \
-                        --junitxml=${REPORTS_DIR}/junit.xml
-                """
-            }
-
-            post {
-                always {
-
-                    junit "${REPORTS_DIR}/junit.xml"
-
-                    archiveArtifacts artifacts: "${REPORTS_DIR}/**", fingerprint: true
+                        mkdir -p ${REPORTS_DIR}
+                    """
                 }
             }
         }
 
+        stage("3 · Pruebas unitarias") {
+    steps {
+
+        dir('sqp') {
+
+            sh """
+                pytest tests/ \
+                    --cov=src \
+                    --cov-report=xml:${REPORTS_DIR}/coverage.xml \
+                    --cov-report=html:${REPORTS_DIR}/htmlcov \
+                    --cov-fail-under=${COVERAGE_THRESHOLD} \
+                    --junitxml=${REPORTS_DIR}/junit.xml
+            """
+        }
+    }
+
+    post {
+        always {
+
+            junit "sqp/${REPORTS_DIR}/junit.xml"
+
+            archiveArtifacts artifacts: "sqp/${REPORTS_DIR}/**", fingerprint: true
+        }
+    }
+}
         stage("4 · Análisis SonarQube") {
             steps {
 
                 withSonarQubeEnv("SonarQube") {
 
-                    sh """
-                        echo "Ejecutando análisis SonarQube..."
+    dir('sqp') {
 
-                        sonar-scanner \
-                          -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                          -Dsonar.projectName="${SONAR_PROJECT_NAME}" \
-                          -Dsonar.sources=src \
-                          -Dsonar.tests=tests \
-                          -Dsonar.python.coverage.reportPaths=${REPORTS_DIR}/coverage.xml \
-                          -Dsonar.python.version=3 \
-                          -Dsonar.host.url=${SONAR_HOST_URL}
-                    """
-                }
+        sh """
+            sonar-scanner \
+              -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+              -Dsonar.projectName="${SONAR_PROJECT_NAME}" \
+              -Dsonar.sources=src \
+              -Dsonar.tests=tests \
+              -Dsonar.python.coverage.reportPaths=${REPORTS_DIR}/coverage.xml \
+              -Dsonar.python.version=3 \
+              -Dsonar.host.url=${SONAR_HOST_URL}
+        """
+    }
+}
             }
         }
 
