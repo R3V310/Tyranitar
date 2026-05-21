@@ -12,7 +12,8 @@ pipeline {
         SONAR_PROJECT_NAME = "Software Quality Project"
 
         // Si Jenkins está en Docker:
-        SONAR_HOST_URL = "http://host.docker.internal:9000"
+        SONAR_HOST_URL = "http://sonarqube:9000"
+
 
         // Si Jenkins y SonarQube están en docker-compose:
         // SONAR_HOST_URL = "http://sonarqube:9000"
